@@ -1,6 +1,6 @@
 CFLAGS = -W -Wall -std=gnu99 -O4
 LDFLAGS =
-DEP = 
+DEP = pred.o parser.o util.o
 CC = gcc
 
 ifeq (${DEBUG}, 1)
