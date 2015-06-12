@@ -36,8 +36,13 @@ bool pred_print(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_ls(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_uid(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_gid(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_user(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_group(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_ctime(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_mtime(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_atime(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_exec(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_name(char* pathname, struct stat* file_stat, struct predicate* info);
 
 /* Fonction de parsage du print dispo depuis l'exterieur 
  * car on peut forcer l'utilisation de ce predicat */

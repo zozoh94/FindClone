@@ -20,8 +20,13 @@ bool parse_print(char *argv[], int *arg_ptr);
 bool parse_ls(char *argv[], int *arg_ptr);
 bool parse_uid(char *argv[], int *arg_ptr);
 bool parse_gid(char *argv[], int *arg_ptr);
+bool parse_user(char *argv[], int *arg_ptr);
+bool parse_group(char *argv[], int *arg_ptr);
 bool parse_ctime(char *argv[], int *arg_ptr);
+bool parse_atime(char *argv[], int *arg_ptr);
+bool parse_mtime(char *argv[], int *arg_ptr);
 bool parse_exec(char *argv[], int *arg_ptr);
+bool parse_name(char *argv[], int *arg_ptr);
 
 struct parser_table {
 	char* name;
@@ -36,8 +41,13 @@ static struct parser_table const parse_table[] = {
 	{ "ls", parse_ls},
 	{ "uid", parse_uid},
 	{ "gid", parse_gid},
+	{ "user", parse_user},
+	{ "group", parse_group},
 	{ "ctime", parse_ctime},
+	{ "atime", parse_atime},
+	{ "mtime", parse_mtime},
 	{ "exec", parse_exec},
+	{ "name", parse_name},
 	{ 0, 0 }
 };
 
@@ -151,12 +161,84 @@ bool parse_gid(char *argv[], int *arg_ptr) {
 	return true;
 }
 
+bool parse_user(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	pred = insert_predicate(pred_user);
+	if(argv[*arg_ptr] != NULL) {
+	        pred->args.str = argv[*arg_ptr];
+	        (*arg_ptr)++;
+	} else
+		return false;
+	return true;
+}
+
+bool parse_group(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	pred = insert_predicate(pred_group);
+	if(argv[*arg_ptr] != NULL) {
+	        pred->args.str = argv[*arg_ptr];
+	        (*arg_ptr)++;
+	} else
+		return false;
+	return true;
+}
+
 bool parse_ctime(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
 	long val;
 	char *ptr;
 	char* number_str = argv[*arg_ptr]+sizeof(char);
 	pred = insert_predicate(pred_ctime);
+	switch(argv[*arg_ptr][0]) {
+	case '+':
+		pred->comp = GREATER_THAN;
+		break;
+	case '-':
+		pred->comp = LOWER_THAN;
+		break;
+	default:
+		number_str = argv[*arg_ptr];
+	}
+	val = strtol(number_str, &ptr, 10);
+	if(errno == EINVAL)
+		return false;
+	pred->args.val = val;
+	(*arg_ptr)++;
+	return true;
+}
+
+
+bool parse_atime(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	long val;
+	char *ptr;
+	char* number_str = argv[*arg_ptr]+sizeof(char);
+	pred = insert_predicate(pred_atime);
+	switch(argv[*arg_ptr][0]) {
+	case '+':
+		pred->comp = GREATER_THAN;
+		break;
+	case '-':
+		pred->comp = LOWER_THAN;
+		break;
+	default:
+		number_str = argv[*arg_ptr];
+	}
+	val = strtol(number_str, &ptr, 10);
+	if(errno == EINVAL)
+		return false;
+	pred->args.val = val;
+	(*arg_ptr)++;
+	return true;
+}
+
+
+bool parse_mtime(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	long val;
+	char *ptr;
+	char* number_str = argv[*arg_ptr]+sizeof(char);
+	pred = insert_predicate(pred_mtime);
 	switch(argv[*arg_ptr][0]) {
 	case '+':
 		pred->comp = GREATER_THAN;
@@ -203,5 +285,16 @@ bool parse_exec(char *argv[], int *arg_ptr) {
 	args[len-1] = NULL;
 	pred->args.args = args;
 	*arg_ptr += i;
+	return true;
+}
+
+bool parse_name(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	pred = insert_predicate(pred_name);
+	if(argv[*arg_ptr] != NULL) {
+	        pred->args.str = argv[*arg_ptr];
+	        (*arg_ptr)++;
+	} else
+		return false;
 	return true;
 }

@@ -14,6 +14,8 @@
 #include <grp.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <fnmatch.h>
+#include <libgen.h>
 #include "defs.h"
 
 /* Structure associant un predicat à son nom */
@@ -30,8 +32,13 @@ struct pred_assoc pred_table[] = {
 	{pred_ls, "ls"},
 	{pred_uid, "uid"},
 	{pred_gid, "gid"},
+	{pred_user, "user"},
+	{pred_group, "group"},
 	{pred_ctime, "ctime"},
+	{pred_mtime, "mtime"},
+	{pred_atime, "atime"},
 	{pred_exec, "exec"},
+	{pred_name, "name"},
 	{0, "none "}
 };
 
@@ -140,7 +147,7 @@ bool pred_ls(char* pathname, struct stat* file_stat, struct predicate* info) {
 	struct group* group;
 	
 	user = getpwuid(file_stat->st_uid);
-	if (user->pw_name)
+	if (user)
 		printf("%-8s ", user->pw_name);
 	else
 		printf("%-8d ", file_stat->st_uid);
@@ -187,9 +194,51 @@ bool pred_gid(char* pathname, struct stat* file_stat, struct predicate* info) {
 	return false;
 }
 
+bool pred_user(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)pathname;
+	struct passwd* user = getpwnam(info->args.str);
+	if (user && file_stat->st_uid == user->pw_uid)
+		return true;
+	return false;
+}
+
+bool pred_group(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)pathname;
+	struct group* group = getgrnam(info->args.str);
+	if (group && file_stat->st_gid == group->gr_gid)
+		return true;
+	return false;
+}
+
 bool pred_ctime(char* pathname, struct stat* file_stat, struct predicate* info) {
 	(void)pathname;
         time_t comp = (time(NULL)-file_stat->st_ctime)/(60*60*24);
+        int diff = (int)difftime(comp, info->args.val);
+	if(info->comp == EQUAL && diff == 0)
+		return true;
+	else if(info->comp == GREATER_THAN && diff > 0)
+		return true;
+	else if(info->comp == LOWER_THAN && diff < 0)
+		return true;
+	return false;
+}
+
+bool pred_atime(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)pathname;
+        time_t comp = (time(NULL)-file_stat->st_atime)/(60*60*24);
+        int diff = (int)difftime(comp, info->args.val);
+	if(info->comp == EQUAL && diff == 0)
+		return true;
+	else if(info->comp == GREATER_THAN && diff > 0)
+		return true;
+	else if(info->comp == LOWER_THAN && diff < 0)
+		return true;
+	return false;
+}
+
+bool pred_mtime(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)pathname;
+        time_t comp = (time(NULL)-file_stat->st_mtime)/(60*60*24);
         int diff = (int)difftime(comp, info->args.val);
 	if(info->comp == EQUAL && diff == 0)
 		return true;
@@ -228,7 +277,14 @@ bool pred_exec(char* pathname, struct stat* file_stat, struct predicate* info) {
 				info->args.args[place_acc] = acc;
 		}	
 		return true;
-	} else {
+	} else 
 		return false;
-	}
+}
+
+bool pred_name(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)(file_stat);
+	if(!fnmatch(info->args.str, basename(pathname), 0))
+		return true;
+	else
+		return false;
 }
