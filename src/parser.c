@@ -1,8 +1,7 @@
 /**
  * Fonction de parsage des arguments de la ligne de commande du FindClone
  *
- * @author Enzo Hamelin
- * @author Amirali Ghazi
+ * Par Amirali Ghazi et Enzo Hamelin
  */
 
 #include <string.h>
@@ -12,6 +11,8 @@
 #include <errno.h>
 #include "defs.h"
 
+/* Différents prédicats prenant en arguments les arguments de la ligne de commande
+   ainsi que l'index de départ dans argv de ces arguments*/
 bool parse_type(char *argv[], int *arg_ptr);
 bool parse_true(char *argv[], int *arg_ptr);
 bool parse_false(char *argv[], int *arg_ptr);
@@ -19,6 +20,8 @@ bool parse_print(char *argv[], int *arg_ptr);
 bool parse_ls(char *argv[], int *arg_ptr);
 bool parse_uid(char *argv[], int *arg_ptr);
 bool parse_gid(char *argv[], int *arg_ptr);
+bool parse_ctime(char *argv[], int *arg_ptr);
+bool parse_exec(char *argv[], int *arg_ptr);
 
 struct parser_table {
 	char* name;
@@ -33,6 +36,8 @@ static struct parser_table const parse_table[] = {
 	{ "ls", parse_ls},
 	{ "uid", parse_uid},
 	{ "gid", parse_gid},
+	{ "ctime", parse_ctime},
+	{ "exec", parse_exec},
 	{ 0, 0 }
 };
 
@@ -79,7 +84,7 @@ bool parse_type(char *argv[], int *arg_ptr) {
 	}
 	pred = insert_predicate(pred_type);
 	pred->args.type = type;
-	(*arg_ptr)++;
+	(*arg_ptr)++; //On oublies pas d'incrementer arg_ptr pour que le parser n'interprete pas les arguments de parse_type
 	return true;
 }
 
@@ -87,8 +92,7 @@ bool parse_true(char *argv[], int *arg_ptr) {
 	(void) argv;
 	(void) arg_ptr;
 	
-	struct predicate* pred;
-	pred = insert_predicate(pred_true);
+	insert_predicate(pred_true);
 	return true;
 }
 
@@ -96,8 +100,7 @@ bool parse_false(char *argv[], int *arg_ptr) {
 	(void) argv;
 	(void) arg_ptr;
 	
-	struct predicate* pred;
-	pred = insert_predicate(pred_true);
+        insert_predicate(pred_true);
 	return true;
 }
 
@@ -145,5 +148,60 @@ bool parse_gid(char *argv[], int *arg_ptr) {
 	pred = insert_predicate(pred_gid);
 	pred->args.val = val;
 	(*arg_ptr)++;
+	return true;
+}
+
+bool parse_ctime(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	long val;
+	char *ptr;
+	char* number_str = argv[*arg_ptr]+sizeof(char);
+	pred = insert_predicate(pred_ctime);
+	switch(argv[*arg_ptr][0]) {
+	case '+':
+		pred->comp = GREATER_THAN;
+		break;
+	case '-':
+		pred->comp = LOWER_THAN;
+		break;
+	default:
+		number_str = argv[*arg_ptr];
+	}
+	val = strtol(number_str, &ptr, 10);
+	if(errno == EINVAL)
+		return false;
+	pred->args.val = val;
+	(*arg_ptr)++;
+	return true;
+}
+
+bool parse_exec(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	pred = insert_predicate(pred_exec);
+	pred->args_set = true;
+	pred->execute = true;
+	int i;
+	int len = 1;
+	for(i = *arg_ptr; argv[i] != NULL && argv[i][0] != ';'; i++) {
+		if(argv[i][0] == '-')
+			return false;
+		len++;
+	}
+	//On crée un tableau de chaines correspondant aux arguements de execvp
+	char **args = malloc(len*sizeof(char*));
+	if(args == NULL)
+		exit(EXIT_FAILURE);	
+	int j = 0;
+	for(i = *arg_ptr; argv[i] != NULL && argv[i][0] != ';'; i++) {
+		args[j] = malloc((strlen(argv[i])+1)*sizeof(char));
+		if(args[j] == NULL)
+			exit(EXIT_FAILURE);;
+		args[j][strlen(argv[i])-1] = '\0';
+		memcpy(args[j], argv[i], strlen(argv[i]));
+		j++;
+	}
+	args[len-1] = NULL;
+	pred->args.args = args;
+	*arg_ptr += i;
 	return true;
 }
