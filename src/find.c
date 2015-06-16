@@ -191,22 +191,21 @@ void process_path(char* pathname)
 			qsort(files_sorted, i, sizeof(char*), compare_pathname);
 			//On parcourt les chemins
 			for(int j=0; j<i; j++) {
-				printf("%s\n", files_sorted[j]);
-				/*if(lstat(files_sorted[j], &stat_file) != -1) {
-				  apply_predicates(files_sorted[j], &stat_file);
-				  //Si le fichier est un dossier on lance process_dir
-				  if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
-				  int length = strlen(files_sorted[j]);
-				  files_sorted[j][length] = '/';
-				  files_sorted[j][length+1] = '\0';
-				  process_dir(files_sorted[j]);
-				  }	       
-				  }*/
+				if(lstat(files_sorted[j], &stat_file) != -1) {
+					apply_predicates(files_sorted[j], &stat_file);
+					//Si le fichier est un dossier on lance process_dir
+					if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
+						int length = strlen(files_sorted[j]);
+						files_sorted[j][length] = '/';
+						files_sorted[j][length+1] = '\0';
+						process_dir(files_sorted[j]);
+					}	       
+				}
 			}
 			//On libere la memoire des chemins
-			/* for(int j=0; j<i; j++) */
-			/* 		free(files_sorted[j]); */
-			/* free(files_sorted); */
+			for(int j=0; j<i; j++)
+				free(files_sorted[j]); 
+			free(files_sorted);
 		}
 	}
 	closedir(dir);	
