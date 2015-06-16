@@ -54,6 +54,7 @@ bool pred_atime(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_exec(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_name(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_perm(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_prune(char* pathname, struct stat* file_stat, struct predicate* info);
 
 /* Fonction de parsage du print dispo depuis l'exterieur 
  * car on peut forcer l'utilisation de ce predicat */
