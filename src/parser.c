@@ -27,6 +27,7 @@ bool parse_atime(char *argv[], int *arg_ptr);
 bool parse_mtime(char *argv[], int *arg_ptr);
 bool parse_exec(char *argv[], int *arg_ptr);
 bool parse_name(char *argv[], int *arg_ptr);
+bool parse_perm(char *argv[], int *arg_ptr);
 
 struct parser_table {
 	char* name;
@@ -48,6 +49,7 @@ static struct parser_table const parse_table[] = {
 	{ "mtime", parse_mtime},
 	{ "exec", parse_exec},
 	{ "name", parse_name},
+	{ "perm", parse_perm},
 	{ 0, 0 }
 };
 
@@ -121,6 +123,7 @@ bool parse_print(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
 	pred = insert_predicate(pred_print);
 	pred->execute = true;
+	pred->no_default_print = true;
 	return true;
 }
 
@@ -139,6 +142,8 @@ bool parse_uid(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
 	long val;
 	char *ptr;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
 	val = strtol(argv[*arg_ptr], &ptr, 10);
 	if(errno == EINVAL)
 		return false;
@@ -152,6 +157,8 @@ bool parse_gid(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
 	long val;
 	char *ptr;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
 	val = strtol(argv[*arg_ptr], &ptr, 10);
 	if(errno == EINVAL)
 		return false;
@@ -187,14 +194,16 @@ bool parse_ctime(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
 	long val;
 	char *ptr;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
 	char* number_str = argv[*arg_ptr]+sizeof(char);
 	pred = insert_predicate(pred_ctime);
 	switch(argv[*arg_ptr][0]) {
 	case '+':
-		pred->comp = GREATER_THAN;
+		pred->args.time.comp = GREATER_THAN;
 		break;
 	case '-':
-		pred->comp = LOWER_THAN;
+		pred->args.time.comp = LOWER_THAN;
 		break;
 	default:
 		number_str = argv[*arg_ptr];
@@ -202,7 +211,7 @@ bool parse_ctime(char *argv[], int *arg_ptr) {
 	val = strtol(number_str, &ptr, 10);
 	if(errno == EINVAL)
 		return false;
-	pred->args.val = val;
+	pred->args.time.val = val;
 	(*arg_ptr)++;
 	return true;
 }
@@ -212,14 +221,16 @@ bool parse_atime(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
 	long val;
 	char *ptr;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
 	char* number_str = argv[*arg_ptr]+sizeof(char);
 	pred = insert_predicate(pred_atime);
 	switch(argv[*arg_ptr][0]) {
 	case '+':
-		pred->comp = GREATER_THAN;
+		pred->args.time.comp = GREATER_THAN;
 		break;
 	case '-':
-		pred->comp = LOWER_THAN;
+		pred->args.time.comp = LOWER_THAN;
 		break;
 	default:
 		number_str = argv[*arg_ptr];
@@ -227,7 +238,7 @@ bool parse_atime(char *argv[], int *arg_ptr) {
 	val = strtol(number_str, &ptr, 10);
 	if(errno == EINVAL)
 		return false;
-	pred->args.val = val;
+	pred->args.time.val = val;
 	(*arg_ptr)++;
 	return true;
 }
@@ -237,14 +248,16 @@ bool parse_mtime(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
 	long val;
 	char *ptr;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
 	char* number_str = argv[*arg_ptr]+sizeof(char);
 	pred = insert_predicate(pred_mtime);
 	switch(argv[*arg_ptr][0]) {
 	case '+':
-		pred->comp = GREATER_THAN;
+		pred->args.time.comp = GREATER_THAN;
 		break;
 	case '-':
-		pred->comp = LOWER_THAN;
+		pred->args.time.comp = LOWER_THAN;
 		break;
 	default:
 		number_str = argv[*arg_ptr];
@@ -252,13 +265,15 @@ bool parse_mtime(char *argv[], int *arg_ptr) {
 	val = strtol(number_str, &ptr, 10);
 	if(errno == EINVAL)
 		return false;
-	pred->args.val = val;
+	pred->args.time.val = val;
 	(*arg_ptr)++;
 	return true;
 }
 
 bool parse_exec(char *argv[], int *arg_ptr) {
 	struct predicate* pred;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
 	pred = insert_predicate(pred_exec);
 	pred->args_set = true;
 	pred->execute = true;
@@ -296,5 +311,55 @@ bool parse_name(char *argv[], int *arg_ptr) {
 	        (*arg_ptr)++;
 	} else
 		return false;
+	return true;
+}
+
+bool parse_perm(char *argv[], int *arg_ptr) {
+	unsigned char perm[3];
+	struct predicate* pred;
+	enum permissions_type type = EXACT;
+        if(argv == NULL || argv[*arg_ptr] == NULL || strlen(argv[*arg_ptr]) < 3)
+		return false;
+	
+	switch(argv[*arg_ptr][0]) {
+	case '-':
+		for(int i=0; i<3; i++)
+		{
+			if ('0' <= argv[*arg_ptr][i+1] && argv[*arg_ptr][i+1] <= '9') {
+				perm[i] = argv[*arg_ptr][i+1] - '0';
+
+			}
+			else
+				return false;
+		}
+		type=AT_LEAST;
+		break;
+	case '/':
+		for(int i=0; i<3; i++)
+		{
+			if ('0' <= argv[*arg_ptr][i+1] && argv[*arg_ptr][i+1] <= '9') {
+				perm[i] = argv[*arg_ptr][i+1] - '0';
+			}
+			else
+				return false;
+		}
+		type=ANY;
+		break;
+	default:
+		for(int i=0; i<3; i++)
+		{
+			if ('0' <= argv[*arg_ptr][i] && argv[*arg_ptr][i] <= '9') {
+				perm[i] = argv[*arg_ptr][i] - '0';
+			}
+			else 
+				return false;
+		}
+		type=EXACT;
+	}
+	
+	pred = insert_predicate(pred_perm);
+	pred->args.perm.type = type;
+	memcpy(pred->args.perm.val, perm, sizeof(perm));
+	(*arg_ptr)++; //On oublies pas d'incrementer arg_ptr pour que le parser n'interprete pas les arguments de parse_type
 	return true;
 }

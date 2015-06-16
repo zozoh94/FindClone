@@ -18,6 +18,8 @@
 #include <libgen.h>
 #include "defs.h"
 
+#define SECPERDAYS 86400
+
 /* Structure associant un predicat à son nom */
 struct pred_assoc {
 	ptr_function_bool function;
@@ -39,6 +41,7 @@ struct pred_assoc pred_table[] = {
 	{pred_atime, "atime"},
 	{pred_exec, "exec"},
 	{pred_name, "name"},
+	{pred_perm, "perm"},
 	{0, "none "}
 };
 
@@ -212,39 +215,39 @@ bool pred_group(char* pathname, struct stat* file_stat, struct predicate* info) 
 
 bool pred_ctime(char* pathname, struct stat* file_stat, struct predicate* info) {
 	(void)pathname;
-        time_t comp = (time(NULL)-file_stat->st_ctime)/(60*60*24);
-        int diff = (int)difftime(comp, info->args.val);
-	if(info->comp == EQUAL && diff == 0)
+        time_t comp = (time(NULL)-file_stat->st_ctime)/(SECPERDAYS);
+        int diff = (int)difftime(comp, info->args.time.val);
+	if(info->args.time.comp == EQUAL && diff == 0)
 		return true;
-	else if(info->comp == GREATER_THAN && diff > 0)
+	else if(info->args.time.comp == GREATER_THAN && diff > 0)
 		return true;
-	else if(info->comp == LOWER_THAN && diff < 0)
+	else if(info->args.time.comp == LOWER_THAN && diff < 0)
 		return true;
 	return false;
 }
 
 bool pred_atime(char* pathname, struct stat* file_stat, struct predicate* info) {
 	(void)pathname;
-        time_t comp = (time(NULL)-file_stat->st_atime)/(60*60*24);
-        int diff = (int)difftime(comp, info->args.val);
-	if(info->comp == EQUAL && diff == 0)
+        time_t comp = (time(NULL)-file_stat->st_atime)/(SECPERDAYS);
+        int diff = (int)difftime(comp, info->args.time.val);
+	if(info->args.time.comp == EQUAL && diff == 0)
 		return true;
-	else if(info->comp == GREATER_THAN && diff > 0)
+	else if(info->args.time.comp == GREATER_THAN && diff > 0)
 		return true;
-	else if(info->comp == LOWER_THAN && diff < 0)
+	else if(info->args.time.comp == LOWER_THAN && diff < 0)
 		return true;
 	return false;
 }
 
 bool pred_mtime(char* pathname, struct stat* file_stat, struct predicate* info) {
 	(void)pathname;
-        time_t comp = (time(NULL)-file_stat->st_mtime)/(60*60*24);
-        int diff = (int)difftime(comp, info->args.val);
-	if(info->comp == EQUAL && diff == 0)
+        time_t comp = (time(NULL)-file_stat->st_mtime)/(SECPERDAYS);
+        int diff = (int)difftime(comp, info->args.time.val);
+	if(info->args.time.comp == EQUAL && diff == 0)
 		return true;
-	else if(info->comp == GREATER_THAN && diff > 0)
+	else if(info->args.time.comp == GREATER_THAN && diff > 0)
 		return true;
-	else if(info->comp == LOWER_THAN && diff < 0)
+	else if(info->args.time.comp == LOWER_THAN && diff < 0)
 		return true;
 	return false;
 }
@@ -287,4 +290,25 @@ bool pred_name(char* pathname, struct stat* file_stat, struct predicate* info) {
 		return true;
 	else
 		return false;
+}
+
+bool pred_perm(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)(pathname);
+        if(info->args.perm.type == EXACT &&
+		info->args.perm.val[0] == ((file_stat->st_mode & S_IRWXU)>>6) &&
+		info->args.perm.val[1] == ((file_stat->st_mode & S_IRWXG)>>3) &&
+		info->args.perm.val[2] == ((file_stat->st_mode & S_IRWXO)))
+		return true;
+	else if(info->args.perm.type == AT_LEAST &&
+		info->args.perm.val[0] <= ((file_stat->st_mode & S_IRWXU)>>6) &&
+		info->args.perm.val[1] <= ((file_stat->st_mode & S_IRWXG)>>3) &&
+		info->args.perm.val[2] <= ((file_stat->st_mode & S_IRWXO)))
+		return true;
+	else if(info->args.perm.type == ANY && (
+		info->args.perm.val[0]<<6 & file_stat->st_mode ||
+		info->args.perm.val[1]<<3 & file_stat->st_mode ||
+		info->args.perm.val[2] & file_stat->st_mode ||
+		(info->args.perm.val[0] == 0 && info->args.perm.val[1] == 0 && info->args.perm.val[2] == 0)))
+		return true;
+	return false;
 }

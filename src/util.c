@@ -26,7 +26,6 @@ struct predicate* insert_predicate(ptr_function_bool pred_func) {
 	last_pred->args_set = false;
 	last_pred->next = NULL;
 	last_pred->no_default_print = false;
-	last_pred->comp = EQUAL;
 	return last_pred;
 }
 

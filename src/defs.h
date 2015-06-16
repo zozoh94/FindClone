@@ -43,6 +43,7 @@ bool pred_mtime(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_atime(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_exec(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_name(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_perm(char* pathname, struct stat* file_stat, struct predicate* info);
 
 /* Fonction de parsage du print dispo depuis l'exterieur 
  * car on peut forcer l'utilisation de ce predicat */
@@ -64,6 +65,28 @@ enum comparison_type
 	EQUAL
 };
 
+/* Enumeration des types de comparaison sur les permissions */
+enum permissions_type
+{
+	AT_LEAST,
+	ANY,
+	EXACT
+};
+
+/* Structure pour representer un temps */
+struct time_val
+{
+	enum comparison_type comp;
+	double val;
+};
+
+/* Structure pour representer une permission */
+struct perm_val
+{
+	enum permissions_type type;
+	unsigned char val[3];
+};
+
 /* Structure chainée initialisée lors de l'analyse syntaxique */ 
 struct predicate {
 	char*  name; //Nom du predicat
@@ -73,9 +96,10 @@ struct predicate {
 		mode_t type;
 		long val;
 		char** args; //Arguments pour les execvp
+		struct time_val time;
+		struct perm_val perm;
 	} args;
 	bool args_set; //Si true args de l'union est initialisé
-	enum comparison_type comp; //Type de comparaison
 	ptr_function_bool function; //Pointeur sur la fonction correspondante au predicat
 	struct predicate* next; //Pointeur sur le predicat suivant
 	bool no_default_print; //Si true le print par défaut ne doit pas etre exécuté
