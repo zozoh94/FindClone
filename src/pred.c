@@ -42,8 +42,6 @@ struct pred_assoc pred_table[] = {
 	{pred_exec, "exec"},
 	{pred_name, "name"},
 	{pred_perm, "perm"},
-	{pred_mindepth, "mindepth"},
-	{pred_maxdepth, "maxdepth"},
 	{0, "none "}
 };
 

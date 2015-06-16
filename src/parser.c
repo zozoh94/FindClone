@@ -369,7 +369,6 @@ bool parse_perm(char *argv[], int *arg_ptr) {
 }
 
 bool parse_mindepth(char *argv[], int *arg_ptr) {
-	struct predicate* pred;
 	long val;
 	char *ptr;
 	if(argv == NULL || argv[*arg_ptr] == NULL)
@@ -377,14 +376,12 @@ bool parse_mindepth(char *argv[], int *arg_ptr) {
 	val = strtol(argv[*arg_ptr], &ptr, 10);
 	if(errno == EINVAL)
 		return false;
-	pred = insert_predicate(pred_mindepth);
-	pred->args.val = val;
+	mindepth = val;
 	(*arg_ptr)++;
 	return true;
 }
 
 bool parse_maxdepth(char *argv[], int *arg_ptr) {
-	struct predicate* pred;
 	long val;
 	char *ptr;
 	if(argv == NULL || argv[*arg_ptr] == NULL)
@@ -392,8 +389,15 @@ bool parse_maxdepth(char *argv[], int *arg_ptr) {
 	val = strtol(argv[*arg_ptr], &ptr, 10);
 	if(errno == EINVAL)
 		return false;
-	pred = insert_predicate(pred_maxdepth);
-	pred->args.val = val;
+	maxdepth = val;
 	(*arg_ptr)++;
+	return true;
+}
+	
+bool parse_prune(char *argv[], int *arg_ptr) {
+	(void) argv;
+	(void) arg_ptr;
+	
+	insert_predicate(pred_true);
 	return true;
 }

@@ -38,6 +38,8 @@ int main(int argc, char *argv[])
 	program_name = argv[0];
 	current_level = 0;
 	stop_at_current_level = false;
+	mindepth = -1;
+	maxdepth = -1;
 	
 	//On parse tous les arguments
 	bool path = parse(argv, argc);
@@ -73,7 +75,8 @@ void process_top_path(char* pathname)
 	if(chdir(path_process) != -1) { //Si l'ouverture s'est bien passé on execute process_path
 		struct stat stat_file;
 		if(lstat(pathname, &stat_file) != -1) {
-			apply_predicates(pathname, &stat_file);
+			if(current_level > mindepth)
+				apply_predicates(pathname, &stat_file);
 			if(!S_ISLNK(stat_file.st_mode))
 				process_path(path_process);
 		}
@@ -81,7 +84,7 @@ void process_top_path(char* pathname)
 	else {  
 		if(errno == EACCES) { //Si l'ouveture ne s'est pas bien passé et que c'est un problème de permissions
 			struct stat stat_file;
-			if(lstat(path_process, &stat_file) != -1) {
+			if(lstat(path_process, &stat_file) != -1 && current_level > mindepth) {
 				apply_predicates(pathname, &stat_file);
 			}
 		}
@@ -96,6 +99,8 @@ void process_path(char* pathname)
 	DIR *dir = opendir(pathname);
 	struct dirent *file;
 	struct stat stat_file;
+
+	stop_at_current_level = maxdepth >= 0 && current_level >= maxdepth;
 	
 	while((file = readdir(dir))) {
 		// On ne prends pas en comptes les liens '.' et '..'
@@ -116,7 +121,7 @@ void process_path(char* pathname)
 			if(lstat(path, &stat_file) != -1) {
 				apply_predicates(path, &stat_file);
 				//Si le fichier est un dossier on lance process_dir
-				if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode)) {
+				if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
 					path[length-2] = '/';
 					path[length-1] = '\0';
 					process_dir(path);
