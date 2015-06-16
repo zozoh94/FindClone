@@ -36,7 +36,9 @@ int main(int argc, char *argv[])
         }
 	
 	program_name = argv[0];
-
+	current_level = 0;
+	stop_at_current_level = false;
+	
 	//On parse tous les arguments
 	bool path = parse(argv, argc);
 
@@ -114,11 +116,10 @@ void process_path(char* pathname)
 			if(lstat(path, &stat_file) != -1) {
 				apply_predicates(path, &stat_file);
 				//Si le fichier est un dossier on lance process_dir
-				if(S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode)) {
+				if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode)) {
 					path[length-2] = '/';
-					path[length-1] = '\0'; 
+					path[length-1] = '\0';
 					process_dir(path);
-					
 				}	       
 			}
 			free(path);
@@ -132,8 +133,11 @@ void process_dir(char* pathname)
 	DIR *dir = opendir(pathname);
 	if(dir == NULL)
 		fprintf(stderr,"%s: \"%s\": %s\n", program_name, pathname, strerror_l(errno, locale));
-	else
+	else {
+		++current_level;
 		process_path(pathname);
+		--current_level;
+	}
 
 	closedir(dir);
 }

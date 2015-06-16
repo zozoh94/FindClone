@@ -28,6 +28,8 @@ bool parse_mtime(char *argv[], int *arg_ptr);
 bool parse_exec(char *argv[], int *arg_ptr);
 bool parse_name(char *argv[], int *arg_ptr);
 bool parse_perm(char *argv[], int *arg_ptr);
+bool parse_mindepth(char *argv[], int *arg_ptr);
+bool parse_maxdepth(char *argv[], int *arg_ptr);
 
 struct parser_table {
 	char* name;
@@ -50,6 +52,8 @@ static struct parser_table const parse_table[] = {
 	{ "exec", parse_exec},
 	{ "name", parse_name},
 	{ "perm", parse_perm},
+	{ "mindepth", parse_mindepth},
+	{ "maxdepth", parse_maxdepth},
 	{ 0, 0 }
 };
 
@@ -361,5 +365,35 @@ bool parse_perm(char *argv[], int *arg_ptr) {
 	pred->args.perm.type = type;
 	memcpy(pred->args.perm.val, perm, sizeof(perm));
 	(*arg_ptr)++; //On oublies pas d'incrementer arg_ptr pour que le parser n'interprete pas les arguments de parse_type
+	return true;
+}
+
+bool parse_mindepth(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	long val;
+	char *ptr;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
+	val = strtol(argv[*arg_ptr], &ptr, 10);
+	if(errno == EINVAL)
+		return false;
+	pred = insert_predicate(pred_mindepth);
+	pred->args.val = val;
+	(*arg_ptr)++;
+	return true;
+}
+
+bool parse_maxdepth(char *argv[], int *arg_ptr) {
+	struct predicate* pred;
+	long val;
+	char *ptr;
+	if(argv == NULL || argv[*arg_ptr] == NULL)
+		return false;
+	val = strtol(argv[*arg_ptr], &ptr, 10);
+	if(errno == EINVAL)
+		return false;
+	pred = insert_predicate(pred_maxdepth);
+	pred->args.val = val;
+	(*arg_ptr)++;
 	return true;
 }

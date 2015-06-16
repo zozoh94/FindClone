@@ -42,6 +42,8 @@ struct pred_assoc pred_table[] = {
 	{pred_exec, "exec"},
 	{pred_name, "name"},
 	{pred_perm, "perm"},
+	{pred_mindepth, "mindepth"},
+	{pred_maxdepth, "maxdepth"},
 	{0, "none "}
 };
 
@@ -311,4 +313,25 @@ bool pred_perm(char* pathname, struct stat* file_stat, struct predicate* info) {
 		(info->args.perm.val[0] == 0 && info->args.perm.val[1] == 0 && info->args.perm.val[2] == 0)))
 		return true;
 	return false;
+}
+
+bool pred_mindepth(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)pathname;
+	(void)file_stat;
+	if (info->args.val > current_level)
+		return false;
+	return true;
+}
+
+bool pred_maxdepth(char* pathname, struct stat* file_stat, struct predicate* info) {
+	(void)pathname;
+	(void)file_stat;
+	if (info->args.val < current_level) {
+		stop_at_current_level = false;
+		return true;
+	}
+	else if (info->args.val > current_level)
+		return false;
+	stop_at_current_level = true;
+	return true;
 }

@@ -25,6 +25,12 @@ void usage (char *msg, char* pathname);
 /* Permet de parser tout les arguments */
 bool parse(char *argv[], int argc);
 
+/* Variable globale indiquant le niveau courant */
+int current_level;
+
+/* Variable globale indiquant si la recherche en profondeur doit etre arrêté en profondeur */
+bool stop_at_current_level;
+
 /*
  * Différents prédicats prenant en paramètre le chemin du fichier à afficher si besoin,
  * la structure stat associée et la structure predicat associée
@@ -44,6 +50,8 @@ bool pred_atime(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_exec(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_name(char* pathname, struct stat* file_stat, struct predicate* info);
 bool pred_perm(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_mindepth(char* pathname, struct stat* file_stat, struct predicate* info);
+bool pred_maxdepth(char* pathname, struct stat* file_stat, struct predicate* info);
 
 /* Fonction de parsage du print dispo depuis l'exterieur 
  * car on peut forcer l'utilisation de ce predicat */
