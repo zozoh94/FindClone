@@ -24,6 +24,8 @@ char* find_name(ptr_function_bool function);
 void usage (char *msg, char* pathname);
 /* Permet de parser tout les arguments */
 bool parse(char *argv[], int argc);
+/* Fonction pour comparer deux chaines et les trier*/
+int compare_pathname(const void *name1, const void *name2);
 
 /* Variable globale indiquant le niveau courant */
 int current_level;
@@ -34,6 +36,9 @@ bool stop_at_current_level;
 /* Variable indiquant les niveaux max et min de recherche */
 int mindepth;
 int maxdepth;
+
+/* indique si les fichiers doivent etre lu dans l'ordre alphabetique */
+bool sort;
 
 /*
  * Différents prédicats prenant en paramètre le chemin du fichier à afficher si besoin,

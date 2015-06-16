@@ -31,6 +31,7 @@ bool parse_perm(char *argv[], int *arg_ptr);
 bool parse_mindepth(char *argv[], int *arg_ptr);
 bool parse_maxdepth(char *argv[], int *arg_ptr);
 bool parse_prune(char *argv[], int *arg_ptr);
+bool parse_sort(char *argv[], int *arg_ptr);
 
 struct parser_table {
 	char* name;
@@ -56,6 +57,7 @@ static struct parser_table const parse_table[] = {
 	{ "mindepth", parse_mindepth},
 	{ "maxdepth", parse_maxdepth},
 	{ "prune", parse_prune},
+	{ "sort", parse_sort},
 	{ 0, 0 }
 };
 
@@ -401,5 +403,12 @@ bool parse_prune(char *argv[], int *arg_ptr) {
 	(void) arg_ptr;
 	
 	insert_predicate(pred_prune);
+	return true;
+}
+
+bool parse_sort(char *argv[], int *arg_ptr) {
+	(void) argv;
+	(void) arg_ptr;
+	sort = true;
 	return true;
 }

@@ -24,6 +24,11 @@ void process_top_path(char* pathname);
 void process_path(char* pathname);
 /*  Permet de rappeler process_path sur les dossiers */
 void process_dir(char* pathname);
+/* Libere les ressources */
+void error_mem();
+
+/* Chemin du dossier parent */
+char *path_process;
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +45,7 @@ int main(int argc, char *argv[])
 	stop_at_current_level = false;
 	mindepth = -1;
 	maxdepth = -1;
+	sort = false;
 	
 	//On parse tous les arguments
 	bool path = parse(argv, argc);
@@ -59,7 +65,6 @@ int main(int argc, char *argv[])
 
 void process_top_path(char* pathname)
 {
-	char *path_process;
 	bool free_path = false;
 	//On ajoute un / à la fin du pathname si il n'en contient pas déjà un
  	if(pathname[strlen(pathname)-1] == '/') 
@@ -67,6 +72,10 @@ void process_top_path(char* pathname)
 	else {
 		free_path = true;
 		path_process = malloc(strlen(pathname)+1);
+		if(path_process == NULL) {
+			error_mem();
+			exit(EXIT_FAILURE);
+		}
 		memcpy(path_process, pathname, strlen(pathname));
 		path_process[strlen(pathname)] = '/';
 	}
@@ -99,35 +108,105 @@ void process_path(char* pathname)
 	DIR *dir = opendir(pathname);
 	struct dirent *file;
 	struct stat stat_file;
+	char** files_sorted = NULL;
 
 	stop_at_current_level = maxdepth >= 0 && current_level >= maxdepth;
-	
-	while((file = readdir(dir))) {
-		// On ne prends pas en comptes les liens '.' et '..'
-		if(strcmp(file->d_name, ".") != 0 && strcmp(file->d_name, "..") != 0) {
-			char* name = file->d_name;
-			int length = (strlen(name)+strlen(pathname)+2);
-			char* path = malloc(length);					
-			if ( path == NULL ) {
-				errno = ENOMEM;
-				fprintf(stderr,"%s \n", strerror_l(errno, locale));
-				exit(EXIT_FAILURE);
+
+	if(sort == false) {
+		while((file = readdir(dir))) {
+			// On ne prends pas en comptes les liens '.' et '..'
+			if(strcmp(file->d_name, ".") != 0 && strcmp(file->d_name, "..") != 0) {
+				char* name = file->d_name;
+				int length = (strlen(name)+strlen(pathname)+2);
+				char* path = malloc(length);					
+				if ( path == NULL ) {
+					closedir(dir);
+					error_mem();
+					exit(EXIT_FAILURE);
+				}
+				//On crée une chaine fusionnant le chemin et le fichier qu'on est en train de lire
+				memcpy(path, pathname, strlen(pathname));
+				memcpy(path+strlen(pathname), name, strlen(name));
+				path[length-2] = '\0';
+				path[length-1] = '\0'; 
+				if(lstat(path, &stat_file) != -1) {
+					apply_predicates(path, &stat_file);
+					//Si le fichier est un dossier on lance process_dir
+					if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
+						path[length-2] = '/';
+						path[length-1] = '\0';
+						process_dir(path);
+					}	       
+				}
+				free(path);
 			}
-			//On crée une chaine fusionnant le chemin et le fichier qu'on est en train de lire
-			memcpy(path, pathname, strlen(pathname));
-			memcpy(path+strlen(pathname), name, strlen(name));
-			path[length-2] = '\0';
-			path[length-1] = '\0'; 
-			if(lstat(path, &stat_file) != -1) {
-				apply_predicates(path, &stat_file);
-				//Si le fichier est un dossier on lance process_dir
-				if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
-					path[length-2] = '/';
-					path[length-1] = '\0';
-					process_dir(path);
-				}	       
+		}
+	}
+	else {
+		int i = 0;
+		while((file = readdir(dir))) {
+			if(strcmp(file->d_name, ".") != 0 && strcmp(file->d_name, "..") != 0) {
+				if(files_sorted == NULL)
+					files_sorted = malloc((100)*sizeof(char*));
+				else if(i > 99) {
+					char **files_sorted_tmp = realloc(files_sorted, (i+1)*sizeof(char*));
+					if(files_sorted_tmp == NULL || files_sorted != files_sorted_tmp) {
+						closedir(dir);
+						error_mem();
+						free(files_sorted);
+						exit(EXIT_FAILURE);
+					}
+					files_sorted = files_sorted_tmp;
+				}
+				if ( files_sorted == NULL ) {
+					closedir(dir);
+					error_mem();
+					exit(EXIT_FAILURE);
+				}
+				
+				char* name = file->d_name;
+				int length = (strlen(name)+strlen(pathname)+2);
+				files_sorted[i] = malloc(length*sizeof(char));
+
+				if ( files_sorted[i] == NULL ) {
+					errno = ENOMEM;
+					fprintf(stderr,"%s \n", strerror_l(errno, locale));
+					for(int j=0; j<i; j++)
+						free(files_sorted[j]);
+					free(files_sorted);
+					exit(EXIT_FAILURE);
+				}
+				files_sorted[i][0] = '\0';
+
+			        strcat(files_sorted[i], pathname);
+				strcat(files_sorted[i], name);
+				files_sorted[i][length-2] = '\0';
+				files_sorted[i][length-1] = '\0'; 
+
+				i++;
 			}
-			free(path);
+		}
+		//On trie les chemins
+		if(files_sorted != NULL) {
+			qsort(files_sorted, i, sizeof(char*), compare_pathname);
+			//On parcourt les chemins
+			for(int j=0; j<i; j++) {
+				printf("%s\n", files_sorted[j]);
+				/*if(lstat(files_sorted[j], &stat_file) != -1) {
+				  apply_predicates(files_sorted[j], &stat_file);
+				  //Si le fichier est un dossier on lance process_dir
+				  if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
+				  int length = strlen(files_sorted[j]);
+				  files_sorted[j][length] = '/';
+				  files_sorted[j][length+1] = '\0';
+				  process_dir(files_sorted[j]);
+				  }	       
+				  }*/
+			}
+			//On libere la memoire des chemins
+			/* for(int j=0; j<i; j++) */
+			/* 		free(files_sorted[j]); */
+			/* free(files_sorted); */
 		}
 	}
 	closedir(dir);	
@@ -145,4 +224,13 @@ void process_dir(char* pathname)
 	}
 
 	closedir(dir);
+}
+
+void error_mem() {
+	//On libere la memoire
+	errno = ENOMEM;
+	fprintf(stderr,"%s \n", strerror_l(errno, locale));
+	free_predicates();
+	freelocale(locale);
+	free(path_process);
 }

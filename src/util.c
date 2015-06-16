@@ -126,3 +126,9 @@ void usage (char *msg, char* pathname) {
 	fprintf (stderr, "Usage: %s [path...] [expression]\n", program_name);
 	exit(EXIT_FAILURE);
 }
+
+int compare_pathname(const void *name1, const void *name2) {
+    const char **name1_ = (const char **)name1;
+    const char **name2_ = (const char **)name2;
+    return strcmp(*name1_, *name2_);
+}
