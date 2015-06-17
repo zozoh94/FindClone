@@ -257,9 +257,6 @@ bool pred_exec(char* pathname, struct stat* file_stat, struct predicate* info) {
 	(void)(file_stat);
 	pid_t child;
 	if( info->args.args != NULL && info->args.args[0] != NULL) {
-		child = fork(); //On fork pour lancer le execvpx
-		if(child == -1)
-			return EXIT_FAILURE;
 
 		char *acc = NULL;
 		int place_acc;
@@ -270,6 +267,10 @@ bool pred_exec(char* pathname, struct stat* file_stat, struct predicate* info) {
 				info->args.args[i] = pathname;
 			}
 		}
+
+		child = fork(); //On fork pour lancer le execvpx
+		if(child == -1)
+			return EXIT_FAILURE;
 	
 		if(child == 0) {
 			if(execvp(info->args.args[0], info->args.args) == -1)

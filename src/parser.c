@@ -214,6 +214,7 @@ bool parse_ctime(char *argv[], int *arg_ptr) {
 		pred->args.time.comp = LOWER_THAN;
 		break;
 	default:
+		pred->args.time.comp = EQUAL;
 		number_str = argv[*arg_ptr];
 	}
 	val = strtol(number_str, &ptr, 10);
@@ -241,6 +242,7 @@ bool parse_atime(char *argv[], int *arg_ptr) {
 		pred->args.time.comp = LOWER_THAN;
 		break;
 	default:
+		pred->args.time.comp = EQUAL;
 		number_str = argv[*arg_ptr];
 	}
 	val = strtol(number_str, &ptr, 10);
@@ -268,6 +270,7 @@ bool parse_mtime(char *argv[], int *arg_ptr) {
 		pred->args.time.comp = LOWER_THAN;
 		break;
 	default:
+		pred->args.time.comp = EQUAL;
 		number_str = argv[*arg_ptr];
 	}
 	val = strtol(number_str, &ptr, 10);
@@ -285,6 +288,7 @@ bool parse_exec(char *argv[], int *arg_ptr) {
 	pred = insert_predicate(pred_exec);
 	pred->args_set = true;
 	pred->execute = true;
+	pred->no_default_print = true;
 	int i;
 	int len = 1;
 	for(i = *arg_ptr; argv[i] != NULL && argv[i][0] != ';'; i++) {

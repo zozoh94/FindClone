@@ -123,7 +123,7 @@ bool parse(char *argv[], int argc) {
 void usage (char *msg, char* pathname) {
 	if (msg)
 		fprintf (stderr, "%s: %s : %s\n", program_name, msg, pathname);
-	fprintf (stderr, "Usage: %s [path...] [expression]\n", program_name);
+	fprintf (stderr, "Utilisation: %s [path...] [expression]\n", program_name);
 	exit(EXIT_FAILURE);
 }
 

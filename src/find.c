@@ -84,7 +84,7 @@ void process_top_path(char* pathname)
 	if(chdir(path_process) != -1) { //Si l'ouverture s'est bien passé on execute process_path
 		struct stat stat_file;
 		if(lstat(pathname, &stat_file) != -1) {
-			if(current_level > mindepth)
+			if(current_level >= mindepth)
 				apply_predicates(pathname, &stat_file);
 			if(!S_ISLNK(stat_file.st_mode))
 				process_path(path_process);
@@ -93,7 +93,7 @@ void process_top_path(char* pathname)
 	else {  
 		if(errno == EACCES) { //Si l'ouveture ne s'est pas bien passé et que c'est un problème de permissions
 			struct stat stat_file;
-			if(lstat(path_process, &stat_file) != -1 && current_level > mindepth) {
+			if(lstat(path_process, &stat_file) != -1 && current_level >= mindepth) {
 				apply_predicates(pathname, &stat_file);
 			}
 		}
@@ -130,9 +130,10 @@ void process_path(char* pathname)
 				path[length-2] = '\0';
 				path[length-1] = '\0'; 
 				if(lstat(path, &stat_file) != -1) {
-					apply_predicates(path, &stat_file);
+					if(current_level >= mindepth)
+						apply_predicates(path, &stat_file);
 					//Si le fichier est un dossier on lance process_dir
-					if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
+					if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode)) {
 						path[length-2] = '/';
 						path[length-1] = '\0';
 						process_dir(path);
@@ -147,7 +148,7 @@ void process_path(char* pathname)
 		while((file = readdir(dir))) {
 			if(strcmp(file->d_name, ".") != 0 && strcmp(file->d_name, "..") != 0) {
 				if(files_sorted == NULL)
-					files_sorted = malloc((100)*sizeof(char*));
+					files_sorted = malloc((1000)*sizeof(char*));
 				else if(i > 99) {
 					char **files_sorted_tmp = realloc(files_sorted, (i+1)*sizeof(char*));
 					if(files_sorted_tmp == NULL || files_sorted != files_sorted_tmp) {
@@ -192,9 +193,10 @@ void process_path(char* pathname)
 			//On parcourt les chemins
 			for(int j=0; j<i; j++) {
 				if(lstat(files_sorted[j], &stat_file) != -1) {
-					apply_predicates(files_sorted[j], &stat_file);
+					if(current_level >= mindepth)
+						apply_predicates(files_sorted[j], &stat_file);
 					//Si le fichier est un dossier on lance process_dir
-					if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode) && current_level > mindepth) {
+					if(!stop_at_current_level && S_ISDIR(stat_file.st_mode) && !S_ISLNK(stat_file.st_mode)) {
 						int length = strlen(files_sorted[j]);
 						files_sorted[j][length] = '/';
 						files_sorted[j][length+1] = '\0';
